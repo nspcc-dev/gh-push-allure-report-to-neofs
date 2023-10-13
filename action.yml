@@ -1,0 +1,209 @@
+name: 'Publish Allure report to NeoFS'
+description: 'This action allows you to publish Allure reports to NeoFS.'
+author: 'Neo SPCC'
+branding:
+  icon: 'server'
+  color: 'green'
+inputs:
+  NEOFS_WALLET:
+    description: N3 wallet for NeoFS network access
+    required: true
+  NEOFS_WALLET_PASSWORD:
+    description: N3 wallet password
+    required: true
+  NEOFS_NETWORK_DOMAIN:
+    description: Rpc endpoint domain address
+    required: false
+    default: 'st1.storage.fs.neo.org'
+  NEOFS_HTTP_GATE:
+    description: HTTP Gateway domain address
+    required: false
+    default: 'http.fs.neo.org'
+  STORE_OBJECTS_CID:
+    description: Container ID for your data
+    required: true
+  PR_LIFETIME:
+    description: Expiration period for PRs in epochs
+    required: false
+    default: 0
+  MASTER_LIFETIME:
+    description: Expiration period for master branch in epochs
+    required: false
+    default: 0
+  MANUAL_RUN_LIFETIME:
+    description: Expiration period for manual runs in epochs
+    required: false
+    default: 0
+  OTHER_LIFETIME:
+    description: Expiration period for other events in epochs
+    required: false
+    default: 0
+  ALLURE_RESULTS_DIR:
+    description: Path to Allure result
+    required: true
+  ALLURE_GENERATED_DIR:
+    description: Path to store Allure generated report
+    required: false
+    default: './tests/neofs-test-allure-generated-report'
+
+outputs:
+  REPORT_NEOFS_URL:
+    description: Container URL
+    value: ${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}${{ github.run_number }}-${{ steps.date.outputs.timestamp }}/
+  COMBINED_REPORT_DIR:
+    description: Path to the directory with the combined Allure report and zip attachments
+    value: ${{ steps.set_report_dir.outputs.REPORT_DIR }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get the current date
+      id: date
+      shell: bash
+      run: |
+        echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
+
+
+    - name: Set combined Allure report directory
+      id: set_report_dir
+      shell: bash
+      env:
+        TIMESTAMP: ${{ steps.date.outputs.timestamp }}
+      run: |
+        echo "REPORT_DIR=${GITHUB_WORKSPACE}/${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
+        echo "REPORT_DIR=${GITHUB_WORKSPACE}/${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_OUTPUT
+
+
+    - name: Set attributes
+      shell: bash
+      env:
+        TIMESTAMP: ${{ steps.date.outputs.timestamp }}
+      run: |
+        echo "NEOFS_ATTRIBUTES=RunNumber=${{ github.run_number }}-$TIMESTAMP,Type=neofs_test_files" >> $GITHUB_ENV
+
+    - name: Checkout gh-push-to-neofs
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11.6'
+
+    - name: Install allure-combine
+      shell: bash
+      run: |
+        pip install allure-combine
+
+    - name: Download latest stable neofs-cli for lifetime definition
+      uses: dsaltares/fetch-gh-release-asset@1.1.1
+      with:
+        repo: 'nspcc-dev/neofs-node'
+        version: 'tags/v0.38.1'
+        file: 'neofs-cli-amd64'
+        target: 'neofs/neofs-cli'
+
+    - name: Chmod latest stable neofs-cli
+      shell: bash
+      run: |
+        sudo chmod a+x neofs-cli
+      working-directory: neofs
+
+    - name: Enable stable neofs-cli
+      shell: bash
+      run: |
+        echo "$(pwd)" >> $GITHUB_PATH
+      working-directory: neofs
+
+    - name: Define lifetime
+      shell: bash
+      env:
+        NEOFS_NETWORK_DOMAIN: ${{ inputs.NEOFS_NETWORK_DOMAIN }}
+        MASTER_LIFETIME: ${{ inputs.MASTER_LIFETIME }}
+        PR_LIFETIME: ${{ inputs.PR_LIFETIME }}
+        MANUAL_RUN_LIFETIME: ${{ inputs.MANUAL_RUN_LIFETIME }}
+        OTHER_LIFETIME: ${{ inputs.OTHER_LIFETIME }}
+      run: |
+        CURRENT_EPOCH=$(neofs-cli netmap epoch --rpc-endpoint $NEOFS_NETWORK_DOMAIN:8080)
+        if [[ "${{ github.event_name }}" == "push" ]]; then
+          LIFETIME=$((MASTER_LIFETIME + CURRENT_EPOCH))
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          LIFETIME=$((PR_LIFETIME + CURRENT_EPOCH))
+        elif [[ "${{ github.event_name }}" == "release" ]]; then
+          LIFETIME=0 # For test reports from releases - no LIFETIME period
+        elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          LIFETIME=$((MANUAL_RUN_LIFETIME + CURRENT_EPOCH))
+        else
+          LIFETIME=$((OTHER_LIFETIME + CURRENT_EPOCH))
+        fi
+        if [[ "$LIFETIME" -eq "$CURRENT_EPOCH" ]]; then
+          LIFETIME=0 # 0 is no expiration period
+        fi
+        echo "LIFETIME=$LIFETIME" >> $GITHUB_ENV
+
+    - name: Generate Allure report
+      uses: simple-elf/allure-report-action@v1.6
+      if: always()
+      id: allure-report
+      with:
+        keep_reports: 100000
+        allure_results: ${{ inputs.ALLURE_RESULTS_DIR }}
+        allure_report: ${{ inputs.ALLURE_GENERATED_DIR }}
+        allure_history: allure-history
+
+    - name: Add write permission to the generated Allure report directory
+      shell: bash
+      env:
+        ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
+        ALLURE_RESULTS_DIR: ${{ inputs.ALLURE_RESULTS_DIR }}
+        SERVER_JS_FILE: ${{ inputs.ALLURE_GENERATED_DIR }}/server.js
+        INDEX_HTML_FILE: ${{ inputs.ALLURE_GENERATED_DIR }}/index.html
+      run: |
+        sudo chmod -R a+rw "$ALLURE_GENERATED_DIR"
+
+    - name: Create a directory tree for the generated Allure report
+      shell: bash
+      run: |
+        mkdir -p "$REPORT_DIR"
+
+    - name: Сonvert the Allure report to static page
+      shell: bash
+      env:
+        ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
+        REPORT_DIR: ${{ env.REPORT_DIR }}
+      run: |
+        allure-combine "$ALLURE_GENERATED_DIR" \
+          --dest "$REPORT_DIR" \
+          --remove-temp-files \
+          --auto-create-folders \
+          --ignore-utf8-errors
+
+    - name: Rename complete.html to index.html
+      shell: bash
+      env:
+        REPORT_DIR: ${{ env.REPORT_DIR }}
+      run: |
+        mv "$REPORT_DIR"/complete.html "$REPORT_DIR"/index.html
+
+    - name: Copy only zip attachments from the generated Allure report directory to the combined report directory
+      shell: bash
+      env:
+        SOURCE_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}/data/attachments/
+        DEST_DIR: ${{ env.REPORT_DIR }}
+        ATTACHMENTS_DIR: ${{ env.REPORT_DIR }}/data/attachments/
+      run: |
+        mkdir -p "$ATTACHMENTS_DIR"
+        rsync -avm --include='*.zip' -f 'hide,! */' "$SOURCE_DIR" "$ATTACHMENTS_DIR"
+        echo "PATH_TO_FILES_DIR=$DEST_DIR" >> $GITHUB_ENV
+
+    - name: Run gh-push-to-neofs
+      id: gh_push_to_neofs
+      uses: nspcc-dev/gh-push-to-neofs@v0.1.1
+      with:
+        NEOFS_WALLET: ${{ inputs.NEOFS_WALLET }}
+        NEOFS_WALLET_PASSWORD: ${{ inputs.NEOFS_WALLET_PASSWORD }}
+        NEOFS_NETWORK_DOMAIN: ${{ inputs.NEOFS_NETWORK_DOMAIN }}
+        NEOFS_HTTP_GATE: ${{ inputs.NEOFS_HTTP_GATE }}
+        STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
+        LIFETIME: ${{ env.LIFETIME }}
+        PATH_TO_FILES_DIR: ${{ env.PATH_TO_FILES_DIR }}
+        NEOFS_ATTRIBUTES: ${{ env.NEOFS_ATTRIBUTES }}
