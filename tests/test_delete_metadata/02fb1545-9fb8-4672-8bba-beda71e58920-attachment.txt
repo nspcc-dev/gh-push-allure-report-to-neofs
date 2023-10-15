@@ -1,0 +1,9 @@
+COMMAND: neofs-cli --config ./TemporaryDir/empty-password.yml netmap epoch --rpc-endpoint 's01.neofs.devenv:8080' --wallet '../neofs-dev-env/services/storage/wallet01.json'
+RETCODE: 0
+
+STDOUT:
+5
+
+STDERR:
+
+Start / End / Elapsed	 20:21:28.593786 / 20:21:28.603990 / 0:00:00.010204

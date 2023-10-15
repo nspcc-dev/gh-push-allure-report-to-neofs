@@ -1,0 +1,8 @@
+COMMAND: echo 'password: ""' > /tmp/s03-config.yaml
+RETCODE: 0
+
+STDOUT:
+
+STDERR:
+
+Start / End / Elapsed	 20:22:23.382007 / 20:22:23.383169 / 0:00:00.001162

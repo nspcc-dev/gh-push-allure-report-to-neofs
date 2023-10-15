@@ -1,0 +1,9 @@
+COMMAND: neofs-cli --config ./TemporaryDir/empty-password.yml object head --rpc-endpoint 's04.neofs.devenv:8080' --wallet '../neofs-dev-env/services/storage/wallet04.json' --cid 'CVGzuZ6su8Zp7i54pL48t2Ta8HqEqDxCe5wowoDvpscG' --oid '3Ddrj3Hp8zCU5YkeRiUqmbgZFLdR6262x2hmLAucG2xQ' --json --ttl 1
+RETCODE: 0
+
+STDOUT:
+{"objectID":{"value":"IPQErWxpbu5UHm1HBiVMIbE7y8lEslpvlsI6wdapN3k="},"signature":{"key":"Ag6jZhAhf4EUOnk/iO2YA0KNJn9HAbKTPyzrTEpna9Vm","signature":"BGAJcVRhXHzlQRoalcR1PO5tQIb2vVPBW8J1XTTKiQL9mer0TUe95FnSIaDPdXNiG1+L6M42bJvVABL8MhirCP0=","scheme":"ECDSA_SHA512"},"header":{"version":{"major":2,"minor":13},"containerID":{"value":"qq7ohHJK9VWoNRy6zLTn3CXlSeeo9DV9RlSb66uoxq0="},"ownerID":{"value":"NSpr/3pp0OdYJaJh4sxnvpKCemykHOaLuA=="},"creationEpoch":"5","payloadLength":"1573864","payloadHash":{"type":"SHA256","sum":"esleGjiXLMI9euvBM+m5GYgdy77oykzA9lWVL5gO6bk="},"objectType":"REGULAR","homomorphicHash":{"type":"TZ","sum":"TLQWvtSBIxbUBkL96GsASWxvD+wcySxzow4Ycj4PpFdRKCUFa4yJ9o98PMxICtaEAbCgp1vXatEgAx7qr9yNKg=="},"sessionToken":{"body":{"id":"T/9WbONASJuOrXL0UOm9JQ==","ownerID":{"value":"NSpr/3pp0OdYJaJh4sxnvpKCemykHOaLuA=="},"lifetime":{"exp":"15","nbf":"5","iat":"5"},"sessionKey":"Ag6jZhAhf4EUOnk/iO2YA0KNJn9HAbKTPyzrTEpna9Vm","object":{"verb":"PUT","target":{"container":{"value":"qq7ohHJK9VWoNRy6zLTn3CXlSeeo9DV9RlSb66uoxq0="},"objects":[]}}},"signature":{"key":"A4azzK7hd2ZxynCjc83FLCMqafZnundGteMamhhe5iAa","signature":"BHbrWm+bpcVaSizKDiN5Kb7QrkNui/hsXijM56vvzbZmdJ28DV1PjGveXA8Zv42KkRuKEvPOuGRBARe6irWzuWg=","scheme":"ECDSA_SHA512"}},"attributes":[{"key":"FileName","value":"e6a65e5d-30e3-4f3d-9fdd-2e1c77d22f74"},{"key":"Timestamp","value":"1696450932"},{"key":"__NEOFS__EXPIRATION_EPOCH","value":"15"}],"split":null},"payload":""}
+
+STDERR:
+
+Start / End / Elapsed	 20:22:24.732897 / 20:22:24.979386 / 0:00:00.246489

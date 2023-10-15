@@ -1,0 +1,10 @@
+COMMAND: neo-go  wallet nep17 transfer --token 'GAS' --to 'NLQktoAxSs6EjGAyq2w2LE3BNXUdRNc3ek' --rpc-endpoint 'http://main-chain.neofs.devenv:30333' --wallet '../neofs-dev-env/services/chain/node-wallet.json' --from 'NfgHwwTi3wHAS8aFAN243C5vGbkYDpqLHP' --force --amount 31 --timeout '10s'
+RETCODE: 0
+
+STDOUT:
+Enter password > 
+0b78a03d6a68ad878d174d778441474fe74b45aee78ce884593c5c25e9365488
+
+STDERR:
+
+Start / End / Elapsed	 20:20:59.318993 / 20:21:00.663159 / 0:00:01.344166

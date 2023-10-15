@@ -1,0 +1,9 @@
+COMMAND: neofs-cli --config ./TemporaryDir/empty-password.yml object head --rpc-endpoint 's01.neofs.devenv:8080' --wallet '../neofs-dev-env/services/storage/wallet01.json' --cid 'CVGzuZ6su8Zp7i54pL48t2Ta8HqEqDxCe5wowoDvpscG' --oid 'AWGDcWbrpFyzDiwM4EatWH1AudcAnNxNum5JyP1Fe1F2' --json --ttl 1
+RETCODE: 1
+
+STDOUT:
+rpc error: read object header via client: status: code = 2049 message = object not found
+
+STDERR:
+
+Start / End / Elapsed	 20:21:29.209194 / 20:21:29.485959 / 0:00:00.276765

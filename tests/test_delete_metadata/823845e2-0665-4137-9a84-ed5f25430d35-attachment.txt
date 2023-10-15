@@ -1,0 +1,25 @@
+COMMAND: neofs-cli --config ./TemporaryDir/empty-password.yml netmap netinfo --rpc-endpoint 's01.neofs.devenv:8080' --wallet '../neofs-dev-env/services/storage/wallet01.json'
+RETCODE: 0
+
+STDOUT:
+Epoch: 5
+Network magic: [net 0x3c2d] 15405
+Time per block: 1s
+NeoFS network configuration (system)
+  Audit fee: 10000
+  Storage price: 100000000
+  Container fee: 1000
+  EigenTrust alpha: 0.1
+  Number of EigenTrust iterations: 4
+  Epoch duration: 240
+  Inner Ring candidate fee: 10000000000
+  Maximum object size: 524288
+  Withdrawal fee: 100000000
+  Homomorphic hashing disabled: false
+  Maintenance mode allowed: false
+NeoFS network configuration (other)
+  SystemDNS: 636f6e7461696e6572
+
+STDERR:
+
+Start / End / Elapsed	 20:21:17.621988 / 20:21:17.630545 / 0:00:00.008557

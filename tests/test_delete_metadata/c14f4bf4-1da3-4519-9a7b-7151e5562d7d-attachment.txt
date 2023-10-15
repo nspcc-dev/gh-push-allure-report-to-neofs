@@ -1,0 +1,11 @@
+COMMAND: neo-go --version
+RETCODE: 0
+
+STDOUT:
+NeoGo
+Version: 0.101.5-pre-284-ga59fd508
+GoVersion: go1.21.0
+
+STDERR:
+
+Start / End / Elapsed	 20:20:55.554047 / 20:20:55.600408 / 0:00:00.046361

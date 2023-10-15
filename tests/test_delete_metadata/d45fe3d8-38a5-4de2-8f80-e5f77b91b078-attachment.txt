@@ -1,0 +1,9 @@
+COMMAND: neofs-cli --config /home/varg/work/neofs-testcases/wallet_config.yml object delete --rpc-endpoint 's01.neofs.devenv:8080' --wallet '/home/varg/work/neofs-testcases/TemporaryDir/f45b898b-9d35-435d-aa48-64b3ef9a854c.json' --cid 'CVGzuZ6su8Zp7i54pL48t2Ta8HqEqDxCe5wowoDvpscG' --oid '3Ddrj3Hp8zCU5YkeRiUqmbgZFLdR6262x2hmLAucG2xQ'
+RETCODE: 1
+
+STDOUT:
+rpc error: remove object via client: status: code = 1024 message = incomplete object PUT by placement: could not close object stream: (*putsvc.remoteTarget) could not put object to [/dns4/s04.neofs.devenv/tcp/8082/tls /dns4/s04.neofs.devenv/tcp/8080]: finish object stream: status: code = 1024 message = incomplete object PUT by placement: could not close object stream: could not delete objects from tombstone locally: status: code = 2050 message = object is locked
+
+STDERR:
+
+Start / End / Elapsed	 20:22:24.980112 / 20:22:25.283056 / 0:00:00.302944
