@@ -1,0 +1,59 @@
+name: Run automated tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+      - support/**
+    types: [opened, synchronize]
+    paths-ignore:
+      - '**/*.md'
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  run_system_tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 500
+    steps:
+      - name: Checkout gh-push-allure-report-to-neofs
+        uses: actions/checkout@v4
+
+      - name: Run gh-push-allure-report-to-neofs
+        id: gh_push_allure_report_to_neofs
+        uses: ./
+        with:
+          NEOFS_WALLET: ${{ secrets.NEOFS_WALLET }}
+          NEOFS_WALLET_PASSWORD: ${{ secrets.NEOFS_WALLET_PASSWORD }}
+          NEOFS_NETWORK_DOMAIN: ${{ vars.NEOFS_NETWORK_DOMAIN }}
+          NEOFS_HTTP_GATE: ${{ vars.NEOFS_HTTP_GATE }}
+          STORE_OBJECTS_CID: ${{ vars.STORE_OBJECTS_CID }}
+          PR_LIFETIME: ${{ vars.PR_LIFETIME }}
+          MASTER_LIFETIME: ${{ vars.MASTER_LIFETIME }}
+          MANUAL_RUN_LIFETIME: ${{ vars.MANUAL_RUN_LIFETIME }}
+          OTHER_LIFETIME: ${{ vars.OTHER_LIFETIME }}
+          ALLURE_RESULTS_DIR: './tests/test_delete_metadata'
+          ALLURE_GENERATED_DIR: './tests/neofs-test-allure-generated-report'
+
+      - name: Prepare venv
+        shell: bash
+        id: prepare_venv
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate && pip install -r requirements.txt
+        working-directory: ./tests
+
+      - name: Run tests
+        env:
+          REPORT_NEOFS_URL: ${{ steps.gh_push_allure_report_to_neofs.outputs.REPORT_NEOFS_URL }}
+          COMBINED_REPORT_DIR: ${{ steps.gh_push_allure_report_to_neofs.outputs.COMBINED_REPORT_DIR }}
+        run: |
+          source venv/bin/activate && pytest test_downloads.py --base_url="$REPORT_NEOFS_URL" --report_dir="$COMBINED_REPORT_DIR"
+        working-directory: ./tests
