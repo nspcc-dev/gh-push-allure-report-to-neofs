@@ -1,0 +1,11 @@
+COMMAND: neofs-cli --config /home/varg/work/neofs-testcases/wallet_config.yml  --version
+RETCODE: 0
+
+STDOUT:
+NeoFS CLI
+Version: v0.37.0-197-g98717120 
+GoVersion: go1.20.6
+
+STDERR:
+
+Start / End / Elapsed	 20:20:55.626940 / 20:20:55.631902 / 0:00:00.004962

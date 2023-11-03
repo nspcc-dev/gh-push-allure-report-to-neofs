@@ -1,0 +1,10 @@
+COMMAND: neofs-cli control healthcheck --endpoint s01.neofs.devenv:8081 --wallet ../neofs-dev-env/services/storage/wallet01.json --config /tmp/s01-config.yaml
+RETCODE: 0
+
+STDOUT:
+Network status: ONLINE
+Health status: READY
+
+STDERR:
+
+Start / End / Elapsed	 20:21:50.267412 / 20:21:50.575101 / 0:00:00.307689

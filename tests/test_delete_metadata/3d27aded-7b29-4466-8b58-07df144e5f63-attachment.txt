@@ -1,0 +1,11 @@
+COMMAND: neofs-s3-authmate --version
+RETCODE: 0
+
+STDOUT:
+NeoFS S3 Authmate
+Version: v0.28.0-4-gc3235ced
+GoVersion: go1.20.6
+
+STDERR:
+
+Start / End / Elapsed	 20:20:55.601187 / 20:20:55.626436 / 0:00:00.025249

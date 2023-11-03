@@ -1,0 +1,9 @@
+COMMAND: aws --version
+RETCODE: 0
+
+STDOUT:
+aws-cli/2.9.19 Python/3.11.4 Linux/6.2.0-33-generic source/x86_64.ubuntu.23 prompt/off
+
+STDERR:
+
+Start / End / Elapsed	 20:20:55.654026 / 20:20:56.168285 / 0:00:00.514259
