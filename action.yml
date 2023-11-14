@@ -197,7 +197,7 @@ runs:
 
     - name: Run gh-push-to-neofs
       id: gh_push_to_neofs
-      uses: nspcc-dev/gh-push-to-neofs@v0.1.1
+      uses: nspcc-dev/gh-push-to-neofs@v0.1.2
       with:
         NEOFS_WALLET: ${{ inputs.NEOFS_WALLET }}
         NEOFS_WALLET_PASSWORD: ${{ inputs.NEOFS_WALLET_PASSWORD }}
