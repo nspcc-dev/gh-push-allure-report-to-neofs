@@ -123,20 +123,16 @@ runs:
         MANUAL_RUN_LIFETIME: ${{ inputs.MANUAL_RUN_LIFETIME }}
         OTHER_LIFETIME: ${{ inputs.OTHER_LIFETIME }}
       run: |
-        CURRENT_EPOCH=$(neofs-cli netmap epoch --rpc-endpoint $NEOFS_NETWORK_DOMAIN:8080)
         if [[ "${{ github.event_name }}" == "push" ]]; then
-          LIFETIME=$((MASTER_LIFETIME + CURRENT_EPOCH))
+          LIFETIME="$MASTER_LIFETIME"
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          LIFETIME=$((PR_LIFETIME + CURRENT_EPOCH))
+          LIFETIME="$PR_LIFETIME"
         elif [[ "${{ github.event_name }}" == "release" ]]; then
           LIFETIME=0 # For test reports from releases - no LIFETIME period
         elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          LIFETIME=$((MANUAL_RUN_LIFETIME + CURRENT_EPOCH))
+          LIFETIME="$MANUAL_RUN_LIFETIME"
         else
-          LIFETIME=$((OTHER_LIFETIME + CURRENT_EPOCH))
-        fi
-        if [[ "$LIFETIME" -eq "$CURRENT_EPOCH" ]]; then
-          LIFETIME=0 # 0 is no expiration period
+          LIFETIME="$OTHER_LIFETIME"
         fi
         echo "LIFETIME=$LIFETIME" >> $GITHUB_ENV
 
