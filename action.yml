@@ -81,9 +81,6 @@ runs:
       run: |
         echo "NEOFS_ATTRIBUTES=RunNumber=${{ github.run_number }}-$TIMESTAMP,Type=neofs_test_files" >> $GITHUB_ENV
 
-    - name: Checkout gh-push-to-neofs
-      uses: actions/checkout@v4
-
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
