@@ -147,9 +147,6 @@ runs:
       shell: bash
       env:
         ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
-        ALLURE_RESULTS_DIR: ${{ inputs.ALLURE_RESULTS_DIR }}
-        SERVER_JS_FILE: ${{ inputs.ALLURE_GENERATED_DIR }}/server.js
-        INDEX_HTML_FILE: ${{ inputs.ALLURE_GENERATED_DIR }}/index.html
       run: |
         sudo chmod -R a+rw "$ALLURE_GENERATED_DIR"
 
