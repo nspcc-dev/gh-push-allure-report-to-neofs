@@ -133,6 +133,11 @@ runs:
         fi
         echo "LIFETIME=$LIFETIME" >> $GITHUB_ENV
 
+    - name: Add github run url to Allure report
+      shell: bash
+      run: |
+        sed -i '1s|^|GITHUB_WORKFLOW_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n|' ${{ inputs.ALLURE_RESULTS_DIR }}/environment.properties
+
     - name: Generate Allure report
       uses: simple-elf/allure-report-action@v1.6
       if: always()
