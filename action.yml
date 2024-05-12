@@ -136,11 +136,10 @@ runs:
     - name: Add github run url to Allure report
       shell: bash
       run: |
-        touch ${{ inputs.ALLURE_RESULTS_DIR }}/environment.properties
-        sed -i '1s|^|GITHUB_WORKFLOW_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n|' ${{ inputs.ALLURE_RESULTS_DIR }}/environment.properties
+        echo "GITHUB_WORKFLOW_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" > ${{ inputs.ALLURE_RESULTS_DIR }}/environment.properties
 
     - name: Generate Allure report
-      uses: simple-elf/allure-report-action@v1.6
+      uses: nspcc-dev/allure-report-action@v1.0
       if: always()
       id: allure-report
       with:
@@ -193,7 +192,7 @@ runs:
 
     - name: Run gh-push-to-neofs
       id: gh_push_to_neofs
-      uses: nspcc-dev/gh-push-to-neofs@v0.1.2
+      uses: nspcc-dev/gh-push-to-neofs@v0.3.0
       with:
         NEOFS_WALLET: ${{ inputs.NEOFS_WALLET }}
         NEOFS_WALLET_PASSWORD: ${{ inputs.NEOFS_WALLET_PASSWORD }}
