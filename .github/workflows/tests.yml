@@ -20,7 +20,11 @@ permissions: write-all
 
 jobs:
   run_system_tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [{runner: 'ubuntu-latest'}, {runner: 'macos-14'}]
     timeout-minutes: 500
     steps:
       - name: Checkout gh-push-allure-report-to-neofs
