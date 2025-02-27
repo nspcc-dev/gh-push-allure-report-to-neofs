@@ -138,6 +138,32 @@ runs:
       run: |
         echo "GITHUB_WORKFLOW_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" > ${{ inputs.ALLURE_RESULTS_DIR }}/environment.properties
 
+    - name: Set allure history directory
+      id: set_history_dir
+      shell: bash
+      run: |
+        HISTORY_DIR_NAME="${{ github.repository }}-${{ github.ref_name }}-${{ github.job }}-${{ runner.os }}"
+        HISTORY_DIR_NAME=$(echo "$HISTORY_DIR_NAME" | sed 's|/|-|g')
+
+        echo "HISTORY_DIR_NAME=$HISTORY_DIR_NAME" >> $GITHUB_ENV
+        echo "HISTORY_DIR_NAME=$HISTORY_DIR_NAME" >> $GITHUB_OUTPUT
+        
+        echo "HISTORY_DIR=${GITHUB_WORKSPACE}/$HISTORY_DIR_NAME" >> $GITHUB_ENV
+        echo "HISTORY_DIR=${GITHUB_WORKSPACE}/$HISTORY_DIR_NAME" >> $GITHUB_OUTPUT
+
+    - name: Download previous Allure report history results
+      shell: bash
+      env:
+        NEOFS_HTTP_GATE: ${{ inputs.NEOFS_HTTP_GATE }}
+        STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
+        ALLURE_RESULTS_DIR: ${{ inputs.ALLURE_RESULTS_DIR }}
+      run: |
+        wget "https://$NEOFS_HTTP_GATE/$STORE_OBJECTS_CID/$HISTORY_DIR_NAME/history.zip" . 2>/dev/null || true
+        if [ -f "history.zip" ]; then
+          mkdir $ALLURE_RESULTS_DIR/history
+          unzip history.zip -d $ALLURE_RESULTS_DIR/history/
+        fi
+
     - name: Generate Allure report
       uses: nspcc-dev/allure-report-action@v1.0
       if: always()
@@ -201,4 +227,44 @@ runs:
         STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
         LIFETIME: ${{ env.LIFETIME }}
         PATH_TO_FILES_DIR: ${{ env.PATH_TO_FILES_DIR }}
+        NEOFS_ATTRIBUTES: ${{ env.NEOFS_ATTRIBUTES }}
+
+    - name: Preserve history folder
+      shell: bash
+      env:
+        ALLURE_HISTORY_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}/history
+      run: |
+        mkdir -p "$HISTORY_DIR"
+        cd $ALLURE_HISTORY_DIR
+        CURRENT_REPORT_URL="${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}${{ github.run_number }}-${{ steps.date.outputs.timestamp }}/index.html"
+        history_json=$(cat history.json)
+        updated_history_json=$(echo "$history_json" | jq --arg url "$CURRENT_REPORT_URL" '
+          to_entries | 
+          map({
+            key: .key, 
+            value: {
+              statistic: .value.statistic, 
+              items: (.value.items | map(
+                if (.reportUrl | contains("http.t5.fs.neo.org")) 
+                then . 
+                else .reportUrl = ($url + "#testresult/" + .uid)
+                end
+              ))
+            }
+          }) | from_entries
+        ')
+        echo "$updated_history_json" > history.json
+        zip -r "$HISTORY_DIR/history.zip" ./*
+
+    - name: Push history to neofs
+      id: gh_push_history_to_neofs
+      uses: nspcc-dev/gh-push-to-neofs@v0.3.0
+      with:
+        NEOFS_WALLET: ${{ inputs.NEOFS_WALLET }}
+        NEOFS_WALLET_PASSWORD: ${{ inputs.NEOFS_WALLET_PASSWORD }}
+        NEOFS_NETWORK_DOMAIN: ${{ inputs.NEOFS_NETWORK_DOMAIN }}
+        NEOFS_HTTP_GATE: ${{ inputs.NEOFS_HTTP_GATE }}
+        STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
+        LIFETIME: ${{ env.LIFETIME }}
+        PATH_TO_FILES_DIR: ${{ env.HISTORY_DIR }}
         NEOFS_ATTRIBUTES: ${{ env.NEOFS_ATTRIBUTES }}
