@@ -165,56 +165,21 @@ runs:
         fi
 
     - name: Generate Allure report
-      uses: nspcc-dev/allure-report-action@v1.0
+      uses: nspcc-dev/allure-report-action@ezayats/bump-allure
       if: always()
       id: allure-report
       with:
         keep_reports: 100000
         allure_results: ${{ inputs.ALLURE_RESULTS_DIR }}
-        allure_report: ${{ inputs.ALLURE_GENERATED_DIR }}
+        allure_report: ${{ env.REPORT_DIR }}
         allure_history: allure-history
 
     - name: Add write permission to the generated Allure report directory
       shell: bash
       env:
-        ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
-      run: |
-        sudo chmod -R a+rw "$ALLURE_GENERATED_DIR"
-
-    - name: Create a directory tree for the generated Allure report
-      shell: bash
-      run: |
-        mkdir -p "$REPORT_DIR"
-
-    - name: Сonvert the Allure report to static page
-      shell: bash
-      env:
-        ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
         REPORT_DIR: ${{ env.REPORT_DIR }}
       run: |
-        allure-combine "$ALLURE_GENERATED_DIR" \
-          --dest "$REPORT_DIR" \
-          --remove-temp-files \
-          --auto-create-folders \
-          --ignore-utf8-errors
-
-    - name: Rename complete.html to index.html
-      shell: bash
-      env:
-        REPORT_DIR: ${{ env.REPORT_DIR }}
-      run: |
-        mv "$REPORT_DIR"/complete.html "$REPORT_DIR"/index.html
-
-    - name: Copy only zip attachments from the generated Allure report directory to the combined report directory
-      shell: bash
-      env:
-        SOURCE_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}/data/attachments/
-        DEST_DIR: ${{ env.REPORT_DIR }}
-        ATTACHMENTS_DIR: ${{ env.REPORT_DIR }}/data/attachments/
-      run: |
-        mkdir -p "$ATTACHMENTS_DIR"
-        rsync -avm --include='*.zip' -f 'hide,! */' "$SOURCE_DIR" "$ATTACHMENTS_DIR"
-        echo "PATH_TO_FILES_DIR=$DEST_DIR" >> $GITHUB_ENV
+        sudo chmod -R a+rw "$REPORT_DIR"
 
     - name: Run gh-push-to-neofs
       id: gh_push_to_neofs
@@ -226,13 +191,13 @@ runs:
         NEOFS_HTTP_GATE: ${{ inputs.NEOFS_HTTP_GATE }}
         STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
         LIFETIME: ${{ env.LIFETIME }}
-        PATH_TO_FILES_DIR: ${{ env.PATH_TO_FILES_DIR }}
+        PATH_TO_FILES_DIR: ${{ env.REPORT_DIR }}
         NEOFS_ATTRIBUTES: ${{ env.NEOFS_ATTRIBUTES }}
 
     - name: Preserve history folder
       shell: bash
       env:
-        ALLURE_HISTORY_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}/history
+        ALLURE_HISTORY_DIR: ${{ env.REPORT_DIR }}/history
       run: |
         mkdir -p "$HISTORY_DIR"
         cd $ALLURE_HISTORY_DIR
