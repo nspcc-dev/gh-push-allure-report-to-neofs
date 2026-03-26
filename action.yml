@@ -54,7 +54,7 @@ inputs:
 outputs:
   REPORT_NEOFS_URL:
     description: Container URL
-    value: ${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}${{ github.run_number }}-${{ steps.date.outputs.timestamp }}/
+    value: ${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}
   COMBINED_REPORT_DIR:
     description: Path to the directory with the combined Allure report and zip attachments
     value: ${{ steps.set_report_dir.outputs.REPORT_DIR }}
@@ -242,7 +242,7 @@ runs:
       run: |
         mkdir -p "$HISTORY_DIR"
         cd $ALLURE_HISTORY_DIR
-        CURRENT_REPORT_URL="${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}${{ github.run_number }}-${{ steps.date.outputs.timestamp }}/index.html"
+        CURRENT_REPORT_URL="${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}index.html"
         history_json=$(cat history.json)
         updated_history_json=$(echo "$history_json" | jq --arg url "$CURRENT_REPORT_URL" '
           to_entries | 
