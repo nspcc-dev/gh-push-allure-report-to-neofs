@@ -196,6 +196,41 @@ runs:
       run: |
         sudo chmod -R a+rw "$ALLURE_GENERATED_DIR"
 
+    - name: Rewrite GitHub Pages URLs to NeoFS URLs in the generated report
+      shell: bash
+      env:
+        ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
+        HTTP_URL_PREFIX: ${{ inputs.HTTP_URL_PREFIX }}
+        STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
+        TIMESTAMP: ${{ steps.date.outputs.timestamp }}
+        RUN_NUMBER: ${{ github.run_number }}
+        GHP_BASE: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/${{ github.run_number }}/
+      run: |
+        if [ -n "$HTTP_URL_PREFIX" ]; then
+          NEOFS_BASE="${HTTP_URL_PREFIX%/}/"
+        else
+          NEOFS_BASE="https://rest.fs.neo.org/$STORE_OBJECTS_CID/"
+        fi
+        NEOFS_REPORT_URL="${NEOFS_BASE}${RUN_NUMBER}-${TIMESTAMP}/"
+        NEOFS_REPORT_INDEX="${NEOFS_REPORT_URL}index.html"
+        echo "Replacing report URL prefix:"
+        echo "  $GHP_BASE"
+        if [[ "$(uname)" == "Darwin" ]]; then
+          find "$ALLURE_GENERATED_DIR" -type f -name '*.json' -print0 \
+            | xargs -0 sed -i '' \
+                -e "s|${GHP_BASE}/#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}\"|${NEOFS_REPORT_INDEX}\"|g" \
+                -e "s|${GHP_BASE}|${NEOFS_REPORT_URL}|g"
+        else
+          find "$ALLURE_GENERATED_DIR" -type f -name '*.json' -print0 \
+            | xargs -0 -r sed -i \
+                -e "s|${GHP_BASE}/#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}\"|${NEOFS_REPORT_INDEX}\"|g" \
+                -e "s|${GHP_BASE}|${NEOFS_REPORT_URL}|g"
+        fi
+
     - name: Create a directory tree for the generated Allure report
       shell: bash
       run: |
@@ -251,25 +286,7 @@ runs:
         ALLURE_HISTORY_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}/history
       run: |
         mkdir -p "$HISTORY_DIR"
-        cd $ALLURE_HISTORY_DIR
-        CURRENT_REPORT_URL="${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}${{ github.run_number }}-${{ steps.date.outputs.timestamp }}/index.html"
-        history_json=$(cat history.json)
-        updated_history_json=$(echo "$history_json" | jq --arg url "$CURRENT_REPORT_URL" '
-          to_entries | 
-          map({
-            key: .key, 
-            value: {
-              statistic: .value.statistic, 
-              items: (.value.items | map(
-                if (.reportUrl | contains("http.t5.fs.neo.org")) 
-                then . 
-                else .reportUrl = ($url + "#testresult/" + .uid)
-                end
-              ))
-            }
-          }) | from_entries
-        ')
-        echo "$updated_history_json" > history.json
+        cd "$ALLURE_HISTORY_DIR"
         zip -r "$HISTORY_DIR/history.zip" ./*
 
     - name: Push history to neofs
