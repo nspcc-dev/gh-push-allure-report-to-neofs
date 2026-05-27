@@ -159,14 +159,24 @@ runs:
     - name: Download previous Allure report history results
       shell: bash
       env:
-        NEOFS_HTTP_GATE: ${{ inputs.NEOFS_HTTP_GATE }}
+        HTTP_URL_PREFIX: ${{ inputs.HTTP_URL_PREFIX }}
         STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
         ALLURE_RESULTS_DIR: ${{ inputs.ALLURE_RESULTS_DIR }}
       run: |
-        wget "https://$NEOFS_HTTP_GATE/$STORE_OBJECTS_CID/$HISTORY_DIR_NAME/history.zip" . 2>/dev/null || true
-        if [ -f "history.zip" ]; then
-          mkdir $ALLURE_RESULTS_DIR/history
-          unzip history.zip -d $ALLURE_RESULTS_DIR/history/
+        if [ -n "$HTTP_URL_PREFIX" ]; then
+          BASE_URL="${HTTP_URL_PREFIX%/}/"
+        else
+          BASE_URL="https://rest.fs.neo.org/$STORE_OBJECTS_CID/"
+        fi
+        HISTORY_URL="${BASE_URL}${HISTORY_DIR_NAME}/history.zip"
+        echo "Trying to fetch previous history from: $HISTORY_URL"
+        if wget -q -O history.zip "$HISTORY_URL"; then
+          mkdir -p "$ALLURE_RESULTS_DIR/history"
+          unzip -o history.zip -d "$ALLURE_RESULTS_DIR/history/"
+          echo "Previous history loaded."
+        else
+          echo "No previous history available (first run on this branch/job, or upload not yet propagated)."
+          rm -f history.zip
         fi
 
     - name: Generate Allure report
@@ -270,8 +280,8 @@ runs:
         NEOFS_WALLET_PASSWORD: ${{ inputs.NEOFS_WALLET_PASSWORD }}
         NEOFS_ENDPOINT: ${{ inputs.NEOFS_ENDPOINT }}
         HTTP_URL_PREFIX: ${{ inputs.HTTP_URL_PREFIX }}
-        URL_PREFIX: ${{ github.run_number }}-${{ steps.date.outputs.timestamp }}
+        URL_PREFIX: ${{ env.HISTORY_DIR_NAME }}
         STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
         LIFETIME: ${{ env.LIFETIME }}
         PATH_TO_FILES_DIR: ${{ env.HISTORY_DIR }}
-        NEOFS_ATTRIBUTES: ${{ env.NEOFS_ATTRIBUTES }}
+        NEOFS_ATTRIBUTES: HistoryFor=${{ env.HISTORY_DIR_NAME }},Type=allure_history
