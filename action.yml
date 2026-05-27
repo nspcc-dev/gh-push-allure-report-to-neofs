@@ -97,12 +97,17 @@ runs:
         pip install allure-combine
 
     - name: Download latest stable neofs-cli for lifetime definition
-      uses: dsaltares/fetch-gh-release-asset@1.1.1
-      with:
-        repo: 'nspcc-dev/neofs-node'
-        version: 'tags/v0.38.1'
-        file: 'neofs-cli-amd64'
-        target: 'neofs/neofs-cli'
+      shell: bash
+      run: |
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        case "$ARCH" in
+          x86_64) ARCH="amd64" ;;
+          aarch64|arm64) ARCH="arm64" ;;
+        esac
+        mkdir -p neofs
+        curl -fsSL -o neofs/neofs-cli \
+          "https://github.com/nspcc-dev/neofs-node/releases/download/v0.53.0/neofs-cli-${OS}-${ARCH}"
 
     - name: Chmod latest stable neofs-cli
       shell: bash
