@@ -97,12 +97,17 @@ runs:
         pip install allure-combine
 
     - name: Download latest stable neofs-cli for lifetime definition
-      uses: dsaltares/fetch-gh-release-asset@1.1.1
-      with:
-        repo: 'nspcc-dev/neofs-node'
-        version: 'tags/v0.38.1'
-        file: 'neofs-cli-amd64'
-        target: 'neofs/neofs-cli'
+      shell: bash
+      run: |
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        case "$ARCH" in
+          x86_64) ARCH="amd64" ;;
+          aarch64|arm64) ARCH="arm64" ;;
+        esac
+        mkdir -p neofs
+        curl -fsSL -o neofs/neofs-cli \
+          "https://github.com/nspcc-dev/neofs-node/releases/download/v0.53.0/neofs-cli-${OS}-${ARCH}"
 
     - name: Chmod latest stable neofs-cli
       shell: bash
@@ -159,14 +164,24 @@ runs:
     - name: Download previous Allure report history results
       shell: bash
       env:
-        NEOFS_HTTP_GATE: ${{ inputs.NEOFS_HTTP_GATE }}
+        HTTP_URL_PREFIX: ${{ inputs.HTTP_URL_PREFIX }}
         STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
         ALLURE_RESULTS_DIR: ${{ inputs.ALLURE_RESULTS_DIR }}
       run: |
-        wget "https://$NEOFS_HTTP_GATE/$STORE_OBJECTS_CID/$HISTORY_DIR_NAME/history.zip" . 2>/dev/null || true
-        if [ -f "history.zip" ]; then
-          mkdir $ALLURE_RESULTS_DIR/history
-          unzip history.zip -d $ALLURE_RESULTS_DIR/history/
+        if [ -n "$HTTP_URL_PREFIX" ]; then
+          BASE_URL="${HTTP_URL_PREFIX%/}/"
+        else
+          BASE_URL="https://rest.fs.neo.org/$STORE_OBJECTS_CID/"
+        fi
+        HISTORY_URL="${BASE_URL}${HISTORY_DIR_NAME}/history.zip"
+        echo "Trying to fetch previous history from: $HISTORY_URL"
+        if wget -q -O history.zip "$HISTORY_URL"; then
+          mkdir -p "$ALLURE_RESULTS_DIR/history"
+          unzip -o history.zip -d "$ALLURE_RESULTS_DIR/history/"
+          echo "Previous history loaded."
+        else
+          echo "No previous history available (first run on this branch/job, or upload not yet propagated)."
+          rm -f history.zip
         fi
 
     - name: Generate Allure report
@@ -185,6 +200,41 @@ runs:
         ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
       run: |
         sudo chmod -R a+rw "$ALLURE_GENERATED_DIR"
+
+    - name: Rewrite GitHub Pages URLs to NeoFS URLs in the generated report
+      shell: bash
+      env:
+        ALLURE_GENERATED_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}
+        HTTP_URL_PREFIX: ${{ inputs.HTTP_URL_PREFIX }}
+        STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
+        TIMESTAMP: ${{ steps.date.outputs.timestamp }}
+        RUN_NUMBER: ${{ github.run_number }}
+        GHP_BASE: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/${{ github.run_number }}/
+      run: |
+        if [ -n "$HTTP_URL_PREFIX" ]; then
+          NEOFS_BASE="${HTTP_URL_PREFIX%/}/"
+        else
+          NEOFS_BASE="https://rest.fs.neo.org/$STORE_OBJECTS_CID/"
+        fi
+        NEOFS_REPORT_URL="${NEOFS_BASE}${RUN_NUMBER}-${TIMESTAMP}/"
+        NEOFS_REPORT_INDEX="${NEOFS_REPORT_URL}index.html"
+        echo "Replacing report URL prefix:"
+        echo "  $GHP_BASE"
+        if [[ "$(uname)" == "Darwin" ]]; then
+          find "$ALLURE_GENERATED_DIR" -type f -name '*.json' -print0 \
+            | xargs -0 sed -i '' \
+                -e "s|${GHP_BASE}/#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}\"|${NEOFS_REPORT_INDEX}\"|g" \
+                -e "s|${GHP_BASE}|${NEOFS_REPORT_URL}|g"
+        else
+          find "$ALLURE_GENERATED_DIR" -type f -name '*.json' -print0 \
+            | xargs -0 -r sed -i \
+                -e "s|${GHP_BASE}/#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}#|${NEOFS_REPORT_INDEX}#|g" \
+                -e "s|${GHP_BASE}\"|${NEOFS_REPORT_INDEX}\"|g" \
+                -e "s|${GHP_BASE}|${NEOFS_REPORT_URL}|g"
+        fi
 
     - name: Create a directory tree for the generated Allure report
       shell: bash
@@ -223,7 +273,7 @@ runs:
 
     - name: Run gh-push-to-neofs
       id: gh_push_to_neofs
-      uses: nspcc-dev/gh-push-to-neofs@v0.4.0
+      uses: nspcc-dev/gh-push-to-neofs@v0.5.0
       with:
         NEOFS_WALLET: ${{ inputs.NEOFS_WALLET }}
         NEOFS_WALLET_PASSWORD: ${{ inputs.NEOFS_WALLET_PASSWORD }}
@@ -241,37 +291,19 @@ runs:
         ALLURE_HISTORY_DIR: ${{ inputs.ALLURE_GENERATED_DIR }}/history
       run: |
         mkdir -p "$HISTORY_DIR"
-        cd $ALLURE_HISTORY_DIR
-        CURRENT_REPORT_URL="${{ steps.gh_push_to_neofs.outputs.OUTPUT_CONTAINER_URL }}${{ github.run_number }}-${{ steps.date.outputs.timestamp }}/index.html"
-        history_json=$(cat history.json)
-        updated_history_json=$(echo "$history_json" | jq --arg url "$CURRENT_REPORT_URL" '
-          to_entries | 
-          map({
-            key: .key, 
-            value: {
-              statistic: .value.statistic, 
-              items: (.value.items | map(
-                if (.reportUrl | contains("http.t5.fs.neo.org")) 
-                then . 
-                else .reportUrl = ($url + "#testresult/" + .uid)
-                end
-              ))
-            }
-          }) | from_entries
-        ')
-        echo "$updated_history_json" > history.json
+        cd "$ALLURE_HISTORY_DIR"
         zip -r "$HISTORY_DIR/history.zip" ./*
 
     - name: Push history to neofs
       id: gh_push_history_to_neofs
-      uses: nspcc-dev/gh-push-to-neofs@v0.4.0
+      uses: nspcc-dev/gh-push-to-neofs@v0.5.0
       with:
         NEOFS_WALLET: ${{ inputs.NEOFS_WALLET }}
         NEOFS_WALLET_PASSWORD: ${{ inputs.NEOFS_WALLET_PASSWORD }}
         NEOFS_ENDPOINT: ${{ inputs.NEOFS_ENDPOINT }}
         HTTP_URL_PREFIX: ${{ inputs.HTTP_URL_PREFIX }}
-        URL_PREFIX: ${{ github.run_number }}-${{ steps.date.outputs.timestamp }}
+        URL_PREFIX: ${{ env.HISTORY_DIR_NAME }}
         STORE_OBJECTS_CID: ${{ inputs.STORE_OBJECTS_CID }}
         LIFETIME: ${{ env.LIFETIME }}
         PATH_TO_FILES_DIR: ${{ env.HISTORY_DIR }}
-        NEOFS_ATTRIBUTES: ${{ env.NEOFS_ATTRIBUTES }}
+        NEOFS_ATTRIBUTES: HistoryFor=${{ env.HISTORY_DIR_NAME }},Type=allure_history
