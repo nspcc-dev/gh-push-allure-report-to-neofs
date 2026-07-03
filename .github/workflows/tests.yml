@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 500
     steps:
       - name: Checkout gh-push-allure-report-to-neofs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run gh-push-allure-report-to-neofs
         id: gh_push_allure_report_to_neofs
