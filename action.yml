@@ -146,7 +146,7 @@ runs:
     - name: Add github run url to Allure report
       shell: bash
       run: |
-        echo "GITHUB_WORKFLOW_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" > ${{ inputs.ALLURE_RESULTS_DIR }}/environment.properties
+        echo "GITHUB_WORKFLOW_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${{ inputs.ALLURE_RESULTS_DIR }}/environment.properties
 
     - name: Set allure history directory
       id: set_history_dir
